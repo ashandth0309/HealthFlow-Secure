@@ -100,7 +100,7 @@ function App() {
           <Route path="/homepage" element={<HomePage />} />
           <Route path="/admindashHome" element={<AdminDash />} />
           <Route path="/admindashHomelogin" element={<AdminLoginHome />} />
-          
+
           {/*=======================================DOCTOR======================================= */}
           <Route path="/DoctorLogin" element={<DoctorLogin />} />
           <Route path="/DoctorDashboard" element={<DoctorDashboard />} />
@@ -108,14 +108,14 @@ function App() {
           <Route path="/PatientMedicalRecord" element={<PatientMedicalRecord />} />
           <Route path="/MedicalRecords" element={<MedicalHistoryPage />} />
           <Route path="/DoctorSignUp" element={<DoctorSignUp />} />
-          <Route path="/DoctorProfilePage" element={<DoctorProfilePage />} />
+          <Route path="/DoctorProfile" element={<DoctorProfilePage />} />
           <Route path="/DoctorEdit" element={<DoctorEditPage />} />
           <Route path="/PatientsPage" element={<PatientsPage />} />
           <Route path="/MedicalHistoryPage" element={<MedicalHistoryPage />} />
           <Route path="/PrescriptionForm" element={<PrescriptionForm />} />
           <Route path="/Prescriptions" element={<Prescriptions />} />
           <Route path="/Map" element={<Map />} />
-          
+
           {/*=======================================PHARMACY======================================= */}
           <Route path="/pharmacyHome" element={<HomePharmacy />} />
           <Route path="/faq" element={<FAQPharmacy />} />
@@ -135,7 +135,7 @@ function App() {
           <Route path="/orderSummmryPhar" element={<OrderSummary />} />
           <Route path="/stafPharmacylog" element={<PharmacyStffLogin />} />
           <Route path="/pharmacistLog" element={<PharmacistLogin />} />
-          
+
           {/*=======================================CHANNEL======================================= */}
           <Route path="/homeChannal" element={<HomeChannal />} />
           <Route path="/addsession" element={<AddSession />} />
@@ -150,7 +150,7 @@ function App() {
           <Route path="/myAppoimentSummry" element={<MyAppoimentSummry />} />
           <Route path="/updateAppoimentUser/:id" element={<UpdateAppoimentUser />} />
           <Route path="/updateSession/:id" element={<UpdateSession />} />
-          
+
           {/*=======================================DENTAL======================================= */}
           <Route path="/denntalHome" element={<HomeDental />} />
           <Route path="/faqdental" element={<FAQ />} />
@@ -169,7 +169,7 @@ function App() {
           <Route path="/dochome" element={<DoctorDash />} />
           <Route path="/dendoclog" element={<DentalDoctorLogin />} />
           <Route path="/myAppointmentDoctor" element={<MyAppointmentDoctor />} />
-          
+
           {/*=======================================ADMIT======================================= */}
           <Route path="/admithome" element={<AdmitHome />} />
           <Route path="/addadmit" element={<AddAdmit />} />
@@ -180,7 +180,7 @@ function App() {
           <Route path="/admitUpdate/:id" element={<UpdateData />} />
           <Route path="/admitadminUpdate/:id" element={<EditAdmitData />} />
           <Route path="/discharge/:id" element={<DischargeAdmit />} />
-          
+
           {/*=======================================PAYMENT======================================= */}
           <Route path="/paynow" element={<AddPayment />} />
           <Route path="/paymentSummry" element={<PaymentSummary />} />

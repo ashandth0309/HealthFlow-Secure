@@ -6,9 +6,11 @@ const cors = require("cors");
 const path = require("path");
 const app = express();
 const bodyParser = require('body-parser');
+const AuthRoute = require("./Routes/auth");
 app.use(cors({ origin: "http://localhost:5173" }));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use("/auth", AuthRoute);
 
 // Link Routes
 const PharmacyOrderRoute = require("./Routes/PharmacyOrderRoutes.js");

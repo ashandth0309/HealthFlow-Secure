@@ -1,124 +1,338 @@
-const express = require('express');
-const bcrypt = require('bcryptjs');
-const doctorSchema = require('../Model/doctor');
+const express = require("express");
+const bcrypt = require("bcryptjs");
+const doctorSchema = require("../Model/doctor");
+
+const {
+  requireAuth,
+  requireSelfOrRole,
+} = require("../middleware/auth");
+
 const router = express.Router();
 
-// Register a new doctor
-router.route('/register').post(async (req, res) => {
+/**
+ * REGISTER DOCTOR
+ * Public for the existing HealthFlow registration flow.
+ */
+router.post("/register", async (req, res) => {
+  try {
+    const {
+      firstName,
+      lastName,
+      dob,
+      specialisation,
+      sheduleTimes,
+      locations,
+      email,
+      password,
+      picture,
+    } = req.body;
+
+    if (
+      !firstName ||
+      !lastName ||
+      !dob ||
+      !specialisation ||
+      !sheduleTimes ||
+      !locations ||
+      !email ||
+      !password ||
+      !picture
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "All required doctor fields must be provided",
+      });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+
+    const existingDoctor = await doctorSchema.findOne({
+      email: normalizedEmail,
+    });
+
+    if (existingDoctor) {
+      return res.status(400).json({
+        success: false,
+        message: "Email is already used",
+      });
+    }
+
+    if (password.length < 8) {
+      return res.status(400).json({
+        success: false,
+        message: "Password must contain at least 8 characters",
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const doctor = new doctorSchema({
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      dob,
+      specialisation: specialisation.trim(),
+      sheduleTimes: sheduleTimes.trim(),
+      locations: locations.trim(),
+      email: normalizedEmail,
+      password: hashedPassword,
+      picture,
+    });
+
+    await doctor.save();
+
+    return res.status(201).json({
+      success: true,
+      message: "Doctor registered successfully",
+    });
+  } catch (err) {
+    console.error("Doctor registration error:", err);
+
+    return res.status(500).json({
+      success: false,
+      message: "Unable to register doctor",
+    });
+  }
+});
+
+/**
+ * OLD LOGIN ENDPOINT
+ *
+ * Keep compatibility temporarily, but securely authenticate.
+ * Frontend will later be moved to /auth/doctor/login.
+ */
+router.post("/login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and password are required",
+      });
+    }
+
+    const doctor = await doctorSchema
+      .findOne({
+        email: email.trim().toLowerCase(),
+      })
+      .select("+password");
+
+    if (!doctor) {
+      return res.status(401).json({
+        success: false,
+        message: "Email or password is incorrect",
+      });
+    }
+
+    const isPasswordMatch = await bcrypt.compare(
+      password,
+      doctor.password
+    );
+
+    if (!isPasswordMatch) {
+      return res.status(401).json({
+        success: false,
+        message: "Email or password is incorrect",
+      });
+    }
+
+    // Do NOT return the doctor document containing the selected password.
+    return res.status(200).json({
+      success: true,
+      message:
+        "Authentication successful. Use /auth/doctor/login for token-based authentication.",
+    });
+  } catch (err) {
+    console.error("Legacy doctor login error:", err);
+
+    return res.status(500).json({
+      success: false,
+      message: "Unable to login",
+    });
+  }
+});
+
+/**
+ * GET ALL DOCTORS
+ *
+ * We leave this public for now because HealthFlow may use this endpoint
+ * to display doctors to patients.
+ *
+ * password is automatically excluded by the Mongoose schema.
+ */
+router.get("/getAll", async (req, res) => {
+  try {
+    const doctors = await doctorSchema.find();
+
+    return res.status(200).json(doctors);
+  } catch (err) {
+    console.error("Get doctors error:", err);
+
+    return res.status(500).json({
+      success: false,
+      message: "Unable to retrieve doctors",
+    });
+  }
+});
+
+/**
+ * GET DOCTOR PROFILE
+ *
+ * Must be authenticated.
+ * Doctor may access only their own profile.
+ */
+router.get(
+  "/get/:id",
+  requireAuth,
+  requireSelfOrRole("admin"),
+  async (req, res) => {
     try {
-        const existingDoctor = await doctorSchema.findOne({ email: req.body.email });
-        if (existingDoctor) {
-            return res.status(400).json({ message: 'Email is already used' });
-        }
+      const doctor = await doctorSchema.findById(req.params.id);
 
-        const hashedPassword = await bcrypt.hash(req.body.password, 10);
-
-        const doctor = new doctorSchema({
-            firstName: req.body.firstName,
-            lastName: req.body.lastName,
-            dob: req.body.dob,
-            specialisation: req.body.specialisation,
-            sheduleTimes: req.body.sheduleTimes,
-            locations: req.body.locations,
-            email: req.body.email,
-            password: hashedPassword,
-            picture: req.body.picture,
+      if (!doctor) {
+        return res.status(404).json({
+          success: false,
+          message: "Doctor not found",
         });
+      }
 
-        await doctor.save();
-        res.status(201).json({ message: 'Doctor registered successfully' });
+      return res.status(200).json(doctor);
     } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
+      console.error("Get doctor error:", err);
 
-// Login a doctor
-router.route('/login').post(async (req, res) => {
+      return res.status(500).json({
+        success: false,
+        message: "Unable to retrieve doctor",
+      });
+    }
+  }
+);
+
+/**
+ * UPDATE DOCTOR PROFILE
+ *
+ * Must be authenticated.
+ * Doctor may update only their own profile.
+ *
+ * Only explicitly allowed fields are accepted.
+ */
+router.put(
+  "/update/:id",
+  requireAuth,
+  requireSelfOrRole("admin"),
+  async (req, res) => {
     try {
-        const { email, password } = req.body;
+      const allowedFields = [
+        "firstName",
+        "lastName",
+        "dob",
+        "specialisation",
+        "sheduleTimes",
+        "locations",
+        "email",
+        "picture",
+      ];
 
-        const doctor = await doctorSchema.findOne({ email });
-        if (!doctor) {
-            return res.status(401).json({ message: 'Email or password is incorrect' });
+      const updatedData = {};
+
+      for (const field of allowedFields) {
+        if (req.body[field] !== undefined) {
+          updatedData[field] = req.body[field];
+        }
+      }
+
+      if (updatedData.email) {
+        updatedData.email = updatedData.email
+          .trim()
+          .toLowerCase();
+      }
+
+      // Password is handled separately so plaintext is never stored.
+      if (req.body.password) {
+        if (
+          typeof req.body.password !== "string" ||
+          req.body.password.length < 8
+        ) {
+          return res.status(400).json({
+            success: false,
+            message: "Password must contain at least 8 characters",
+          });
         }
 
-        const isPasswordMatch = await bcrypt.compare(password, doctor.password);
-        if (!isPasswordMatch) {
-            return res.status(401).json({ message: 'Email or password is incorrect' });
-        }
+        updatedData.password = await bcrypt.hash(
+          req.body.password,
+          10
+        );
+      }
 
-        res.status(200).json({ data: doctor, message: 'Login successful' });
+      const doctor = await doctorSchema.findByIdAndUpdate(
+        req.params.id,
+        updatedData,
+        {
+          new: true,
+          runValidators: true,
+        }
+      );
+
+      if (!doctor) {
+        return res.status(404).json({
+          success: false,
+          message: "Doctor not found",
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: "Doctor updated successfully",
+        doctor,
+      });
     } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
+      console.error("Update doctor error:", err);
 
-// Get all doctors
-router.route('/getAll').get(async (req, res) => {
+      return res.status(500).json({
+        success: false,
+        message: "Unable to update doctor",
+      });
+    }
+  }
+);
+
+/**
+ * DELETE DOCTOR PROFILE
+ *
+ * Must be authenticated.
+ * Doctor may delete only their own account.
+ */
+router.delete(
+  "/delete/:id",
+  requireAuth,
+  requireSelfOrRole("admin"),
+  async (req, res) => {
     try {
-        const doctors = await doctorSchema.find();
-        res.status(200).json(doctors);
+      const doctor = await doctorSchema.findByIdAndDelete(
+        req.params.id
+      );
+
+      if (!doctor) {
+        return res.status(404).json({
+          success: false,
+          message: "Doctor not found",
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: "Doctor deleted successfully",
+      });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+      console.error("Delete doctor error:", err);
+
+      return res.status(500).json({
+        success: false,
+        message: "Unable to delete doctor",
+      });
     }
-});
-
-// Get a doctor by ID
-router.route('/get/:id').get(async (req, res) => {
-    try {
-        const doctor = await doctorSchema.findById(req.params.id);
-        if (!doctor) {
-            return res.status(404).json({ message: 'Doctor not found' });
-        }
-        res.status(200).json(doctor);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// Update a doctor by ID
-router.route('/update/:id').put(async (req, res) => {
-    try {
-        const { firstName, lastName, dob, specialisation, sheduleTimes, locations, email, password, picture } = req.body;
-        const hashedPassword = password ? await bcrypt.hash(password, 10) : undefined;
-
-        const updatedData = {
-            firstName,
-            lastName,
-            dob,
-            specialisation,
-            sheduleTimes,
-            locations,
-            email,
-            picture,
-        };
-
-        if (hashedPassword) {
-            updatedData.password = hashedPassword;
-        }
-
-        const doctor = await doctorSchema.findByIdAndUpdate(req.params.id, updatedData, { new: true });
-        if (!doctor) {
-            return res.status(404).json({ message: 'Doctor not found' });
-        }
-
-        res.status(200).json({ message: 'Doctor updated successfully', doctor });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// Delete a doctor by ID
-router.route('/delete/:id').delete(async (req, res) => {
-    try {
-        const doctor = await doctorSchema.findByIdAndDelete(req.params.id);
-        if (!doctor) {
-            return res.status(404).json({ message: 'Doctor not found' });
-        }
-        res.status(200).json({ message: 'Doctor deleted successfully' });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
+  }
+);
 
 module.exports = router;
