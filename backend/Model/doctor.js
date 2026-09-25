@@ -32,9 +32,10 @@ const doctor = new Schema({
         unique: true
     },
     password: {
-        type: String,
-        required: true
-    },
+  type: String,
+  required: true,
+  select: false,
+},
     picture: {
         type: String,
         required: true

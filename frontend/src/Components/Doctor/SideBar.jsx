@@ -7,7 +7,9 @@ import {
   ListItemText,
   Typography,
   Box,
+  Divider,
 } from "@mui/material";
+
 import {
   Dashboard,
   VideoCall,
@@ -16,8 +18,10 @@ import {
   History,
   Settings,
   ExitToApp,
-  Book, // Added Book icon for SOAP Notes
+  Book,
+  AccountCircle,
 } from "@mui/icons-material";
+
 import { useNavigate } from "react-router-dom";
 
 const Sidebar = () => {
@@ -25,18 +29,66 @@ const Sidebar = () => {
   const drawerWidth = 240;
 
   const menuItems = [
-    { text: "Dashboard", icon: <Dashboard />, path: "/DoctorDashboard" },
-    { text: "Patients Records", icon: <People />, path: "/PatientsPage" },
-    { text: "Consultation", icon: <VideoCall />, path: "/TelemedicineConsultation" },
-    { text: "SOAP Notes", icon: <Book />, path: "/TelemedicineConsultation" }, // Fixed: Changed <book /> to <Book />
-    { text: "Prescriptions", icon: <LocalHospital />, path: "/Prescriptions" }, 
-    { text: "Diagnostic Orders", icon: <History />, path: "/MedicalRecords" }, // Fixed typo: "Giagnostic" to "Diagnostic"
-    { text: "Referrals", icon: <Settings />, path: "/DoctorProfilePage" },
+    {
+      text: "Dashboard",
+      icon: <Dashboard />,
+      path: "/DoctorDashboard",
+    },
+
+    {
+      text: "My Profile",
+      icon: <AccountCircle />,
+      path: "/DoctorProfile",
+    },
+
+    {
+      text: "Patients Records",
+      icon: <People />,
+      path: "/PatientsPage",
+    },
+
+    {
+      text: "Consultation",
+      icon: <VideoCall />,
+      path: "/TelemedicineConsultation",
+    },
+
+    {
+      text: "SOAP Notes",
+      icon: <Book />,
+      path: "/TelemedicineConsultation",
+    },
+
+    {
+      text: "Prescriptions",
+      icon: <LocalHospital />,
+      path: "/Prescriptions",
+    },
+
+    {
+      text: "Diagnostic Orders",
+      icon: <History />,
+      path: "/MedicalRecords",
+    },
+
+    {
+      text: "Referrals",
+      icon: <Settings />,
+      path: "/MedicalHistoryPage",
+    },
   ];
 
   const handleLogout = () => {
+    // Remove authenticated doctor information
     sessionStorage.removeItem("doctor");
-    navigate("/DoctorLogin");
+
+    // Remove JWT authentication token
+    sessionStorage.removeItem("doctorToken");
+
+    // Return user to secure login page
+    navigate("/DoctorLogin", {
+      replace: true,
+    });
   };
 
   return (
@@ -44,6 +96,7 @@ const Sidebar = () => {
       sx={{
         width: drawerWidth,
         flexShrink: 0,
+
         "& .MuiDrawer-paper": {
           width: drawerWidth,
           boxSizing: "border-box",
@@ -54,31 +107,80 @@ const Sidebar = () => {
       variant="permanent"
       anchor="left"
     >
-      <Box sx={{ p: 2, textAlign: "center" }}>
-        <Typography variant="h6" noWrap component="div">
+      {/* HealthFlow Header */}
+
+      <Box
+        sx={{
+          p: 2,
+          textAlign: "center",
+        }}
+      >
+        <Typography
+          variant="h6"
+          noWrap
+          component="div"
+        >
           HealthFlow
         </Typography>
+
+        <Typography
+          variant="caption"
+          sx={{
+            opacity: 0.7,
+          }}
+        >
+          Doctor Portal
+        </Typography>
       </Box>
-      
+
+      <Divider
+        sx={{
+          borderColor: "rgba(255,255,255,0.15)",
+        }}
+      />
+
+      {/* Navigation */}
+
       <List>
         {menuItems.map((item) => (
           <ListItem
             button
             key={item.text}
-            onClick={() => navigate(item.path)}
+            onClick={() =>
+              navigate(item.path)
+            }
             sx={{
               "&:hover": {
                 backgroundColor: "#34495e",
               },
             }}
           >
-            <ListItemIcon sx={{ color: "white" }}>
+            <ListItemIcon
+              sx={{
+                color: "white",
+              }}
+            >
               {item.icon}
             </ListItemIcon>
-            <ListItemText primary={item.text} />
+
+            <ListItemText
+              primary={item.text}
+            />
           </ListItem>
         ))}
-        
+      </List>
+
+      <Box sx={{ flexGrow: 1 }} />
+
+      <Divider
+        sx={{
+          borderColor: "rgba(255,255,255,0.15)",
+        }}
+      />
+
+      {/* Secure Logout */}
+
+      <List>
         <ListItem
           button
           onClick={handleLogout}
@@ -88,9 +190,14 @@ const Sidebar = () => {
             },
           }}
         >
-          <ListItemIcon sx={{ color: "white" }}>
+          <ListItemIcon
+            sx={{
+              color: "white",
+            }}
+          >
             <ExitToApp />
           </ListItemIcon>
+
           <ListItemText primary="Logout" />
         </ListItem>
       </List>
