@@ -3,11 +3,33 @@ const mongoose = require("mongoose");
 const connectDB = require("./Config/db.js");
 const dotenv = require("dotenv");
 const cors = require("cors");
+const helmet = require("helmet");
 const path = require("path");
 const app = express();
 const bodyParser = require('body-parser');
 const AuthRoute = require("./Routes/auth");
-app.use(cors({ origin: "http://localhost:5173" }));
+const allowedOrigins = ["http://localhost:5173"];
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow requests without an Origin header, such as Postman/curl/server-to-server.
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(null, false);
+    },
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
+
+app.use(helmet());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use("/auth", AuthRoute);
@@ -33,7 +55,6 @@ const admitRouter = require('./Routes/AdmitRoutes');
 
 dotenv.config();
 connectDB();
-app.use(cors());
 app.use(express.json());
 
 // Routes
