@@ -117,6 +117,35 @@ app.use("/paymentFunction", PaymentFunctionRoute);
 app.use("/doctorFunction", DoctorFunctionRoute);
 app.use("/prescriptions", PrescriptionsFunctionRoute);
 
+// Handle file upload validation errors safely.
+app.use((err, req, res, next) => {
+  if (err instanceof require("multer").MulterError) {
+    if (err.code === "LIMIT_FILE_SIZE") {
+      return res.status(400).json({
+        success: false,
+        message: "Prescription file is too large. Maximum allowed size is 5 MB.",
+      });
+    }
+
+    return res.status(400).json({
+      success: false,
+      message: "File upload failed.",
+    });
+  }
+
+  if (
+    err &&
+    err.message ===
+      "Invalid prescription file type. Only JPG, JPEG, PNG, and PDF files are allowed."
+  ) {
+    return res.status(400).json({
+      success: false,
+      message: err.message,
+    });
+  }
+
+  return next(err);
+});
 const PORT = process.env.PORT || 8081;
 
 app.listen(PORT, () => {
